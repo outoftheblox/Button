@@ -9,19 +9,22 @@ namespace ootb
     class Button
     {
         private:
-            unsigned int pin;
+            uint8_t pin;
+            bool pullup;
 
             unsigned int debounceDelay = 200; //millis
+            unsigned long lastChange; //millis
 
-            bool clicked;
-            unsigned long nextClick; //millis
-            std::function<void(void)> onClickHandler;
+            bool state;
+            std::function<void(void)> onChangeHandler;
 
         public:
-            Button(unsigned int pin);
+            Button(uint8_t pin, bool pullup = false, unsigned int debounceDelay = 200);
             ~Button();
 
-            void onClick(std::function<void()> function);
+            void onChange(std::function<void()> function);
+
+            bool pressed();
 
             void begin();
             void handle();

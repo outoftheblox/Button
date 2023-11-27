@@ -1,13 +1,13 @@
-#include "Button.h"
-#include "FunctionPointer.h"
 #include <Arduino.h>
+#include "Button.h"
 
 using namespace ootb;
-using namespace std;
 
-Button::Button(unsigned int pin)
+Button::Button(uint8_t pin, bool pullup, unsigned int debounceDelay)
 :
-    pin(pin)
+    pin(pin),
+    pullup(pullup),
+    debounceDelay(debounceDelay)
 {
 }
 
@@ -15,40 +15,31 @@ Button::~Button()
 {
 }
 
-void Button::onClick(std::function<void()> function)
+void Button::onChange(std::function<void()> function)
 {
-    onClickHandler = function;
-}
-
-void Button::handle()
-{
-    if (!clicked) return;
-    if (!onClickHandler)
-    {
-        Serial.println("No click handler");
-        return;
-    }
-    onClickHandler();
-    clicked = false;
+    onChangeHandler = function;
 }
 
 void Button::begin()
 {
-    pinMode(pin, INPUT_PULLUP);
-    nextClick = millis();
-    auto fn = FunctionPointer<void()>([&]
-    {
-        isr();
-    });
-    attachInterrupt(digitalPinToInterrupt(pin), fn, CHANGE);
+    pinMode(pin, pullup ? INPUT_PULLUP : INPUT);
+    lastChange = millis() - debounceDelay;
 }
 
-void Button::isr()
+void Button::handle()
 {
-    bool down = !digitalRead(pin);
-    if (down && millis() > nextClick)
+    bool currentState = pullup ? !digitalRead(pin) : digitalRead(pin);
+    unsigned long now = millis();
+    if (state != currentState && now - lastChange > debounceDelay)
     {
-        nextClick = millis() + debounceDelay;
-        clicked = true;
+        lastChange = millis();
+        state = currentState; 
+        if (!onChangeHandler) return;
+        onChangeHandler();
     }
+}
+
+bool Button::pressed()
+{
+    return state;
 }

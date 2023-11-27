@@ -1,0 +1,1 @@
+A Button class with callback.
